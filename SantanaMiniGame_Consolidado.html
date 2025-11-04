@@ -76,17 +76,20 @@
         text-align:center;
         font-size:38px;
         color:var(--blue);
-        width: 100%; /* Permite que a imagem preencha */
-        height: 100%; /* Permite que a imagem preencha */
-        display: flex; /* Para centralizar a imagem se necessário */
+        /* GARANTE QUE O CONTAINER DA IMAGEM É DO TAMANHO TOTAL */
+        width: 100%; 
+        height: 100%; 
+        display: flex; 
         justify-content: center;
         align-items: center;
     }
     .tile .label img {
+        /* OTIMIZAÇÃO: Garante que a imagem se comporta como um bloco e preenche */
+        display: block; 
         max-width: 100%;
         max-height: 100%;
-        object-fit: contain; /* Garante que a imagem se ajuste sem cortar */
-        border-radius: 8px; /* Opcional: para suavizar cantos das imagens */
+        object-fit: contain; 
+        border-radius: 8px; 
     }
 
     /* Roleta */
@@ -346,10 +349,11 @@
         for(const p of pairs){
           const tile = document.createElement('div'); tile.className='tile'; tile.dataset.key=p._id; tile.dataset.pair=JSON.stringify(p)
           
-          // Renderiza uma tag <img>
           let contentHTML = ''
           if (p.type === 'image') {
-              contentHTML = `<img src="${p.url}" alt="Item ${p._id.slice(0, -1)}" />`
+              // NOVO: Adicionado onerror para tentar uma solução de fallback ou diagnóstico.
+              const fileId = p.url.split('id=')[1]
+              contentHTML = `<img src="${p.url}" alt="Item ${p._id.slice(0, -1)}" onerror="this.onerror=null; this.src='https://drive.google.com/thumbnail?id=${fileId}';" />`
           } else {
               contentHTML = p.text
           }
@@ -379,9 +383,9 @@
           const [a,b] = s.opened
           const pa = JSON.parse(a.dataset.pair), pb = JSON.parse(b.dataset.pair)
           
-          // Compara por 'url'
+          // Compara por 'url' se for imagem
           const match = (pa.type===pb.type) && (pa.type === 'image' ? (pa.url===pb.url) : (pa.text===pb.text))
-
+          
           if(match){
             s.pairs++; s.score += 10; mem.pairsEl.textContent=String(s.pairs); mem.scoreEl.textContent=String(s.score)
             s.opened = []; s.lock=false
