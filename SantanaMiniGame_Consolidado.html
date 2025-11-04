@@ -182,6 +182,23 @@
     .notification-box .btn {
         width: 100%;
     }
+    
+    /* Novo estilo para destacar o cronômetro de revelação */
+    #memRevealTimer {
+      font-weight: 800;
+      color: var(--blue); /* Cor de destaque */
+      margin-left: 5px;
+    }
+    
+    /* Estilo para movimentos restantes */
+    .moves-available {
+        font-weight: 800;
+        color: var(--blue);
+    }
+    .moves-alert {
+        font-weight: 800;
+        color: #ff4c4c; /* Vermelho para alerta */
+    }
   </style>
 </head>
 <body>
@@ -210,7 +227,7 @@
         <div class="card" data-open="memory">
           <div>
             <h3>Jogo da Memória (4×5)</h3>
-            <p class="muted">Revelação: 10s • Tempo total: <strong>1 min</strong>.</p>
+            <p class="muted">Revelação: 10s • Tempo: <strong>50s</strong>. Brinde se acertar **≤ 25 movimentos**.</p>
           </div>
           <button class="btn">Entrar</button>
         </div>
@@ -228,15 +245,16 @@
       <div class="row" style="justify-content:space-between">
         <h2 style="margin:0;color:var(--blue-600)">Jogo da Memória</h2>
         <div class="row">
-          <div id="memStatus" class="muted">Aguardando início…</div>
+          <div id="memStatus" class="muted">Aguardando início… <span id="memRevealTimer" class="hidden"></span></div>
           <button class="btn" id="memStart">Iniciar Novo Jogo</button>
           <button class="btn-ghost" id="memReset">Reiniciar</button>
         </div>
       </div>
       <div class="row" style="gap:16px;margin:10px 0;color:var(--blue-600)">
-        <div>Tempo: <strong id="memTime">00:01:00</strong></div>
+        <div>Tempo: <strong id="memTime">00:00:50</strong></div>
         <div>Pares: <strong id="pairsFound">0</strong>/10</div>
         <div>Jogadas: <strong id="moves">0</strong></div>
+        <div>Movimentos restantes: <strong id="memAvailableMoves">25</strong></div>
         <div>Pontuação: <strong id="score">0</strong></div>
       </div>
       <div class="mem-wrap" id="memGrid"></div>
@@ -309,23 +327,28 @@
       tabs.forEach(t=> t.addEventListener('click', ()=>openTab(t.dataset.tab)))
       document.querySelectorAll('[data-open]').forEach(c=> c.addEventListener('click', ()=>openTab(c.dataset.open)))
 
-      // ---------- MEMÓRIA (1 minuto, IMAGENS) ----------
+      // ---------- MEMÓRIA (50 segundos, 25 movimentos, IMAGENS) ----------
       const mem = {
         grid: document.getElementById('memGrid'),
         status: document.getElementById('memStatus'),
+        revealTimerEl: document.getElementById('memRevealTimer'), // Contador 10, 9, 8...
         timeEl: document.getElementById('memTime'),
         pairsEl: document.getElementById('pairsFound'),
         movesEl: document.getElementById('moves'),
         scoreEl: document.getElementById('score'),
+        availableMovesEl: document.getElementById('memAvailableMoves'), // NOVO: Movimentos restantes
         startBtn: document.getElementById('memStart'),
         resetBtn: document.getElementById('memReset'),
         state:null, timer:null, revealTimer:null, revealCountdownTimer: null
       }
 
-      // NOVO memoryConfig com URLs diretas do Google Drive
+      // memoryConfig: Tempo total definido para 50 segundos, limite de 25 movimentos
       const memoryConfig = {
-        reveal:10, minutes:1, pairsPrizeMin:8,
+        reveal:10, 
+        seconds:50, // MUDANÇA AQUI: Tempo total para 50 segundos
+        movesPrizeMax:25, // MUDANÇA AQUI: Limite máximo de movimentos para 25
         items: [
+            // Imagens que você confirmou que funcionaram
             { type: 'image', url: 'https://drive.google.com/uc?export=view&id=1VF2oQNIhrKK168J96HEsOSvrbtBP9yG9' },
             { type: 'image', url: 'https://drive.google.com/uc?export=view&id=1AGMicjx-jZkdURJiEj60BjJ_fXrpS1uN' },
             { type: 'image', url: 'https://drive.google.com/uc?export=view&id=1MoA1Z0uV7YsfIxOkWKPde5smUnboQZ4a' },
@@ -344,15 +367,23 @@
         const pairs = items.flatMap((it, idx)=>[{...it, _id:idx+'a'},{...it, _id:idx+'b'}])
         shuffle(pairs)
         mem.grid.innerHTML = ''
-        const state = {started:false, finished:false, seconds: memoryConfig.minutes*60, reveal: memoryConfig.reveal, revealCountdown: memoryConfig.reveal, opened:[], lock:false, pairs:0, moves:0, score:0, pairsToPrize: memoryConfig.pairsPrizeMin}
+        const state = {
+          started:false, finished:false, seconds: memoryConfig.seconds, 
+          reveal: memoryConfig.reveal, revealCountdown: memoryConfig.reveal, 
+          opened:[], lock:false, pairs:0, moves:0, score:0, 
+          movesToPrize: memoryConfig.movesPrizeMax, 
+          startTime: 0,
+          movesLeft: memoryConfig.movesPrizeMax // Inicializa movimentos restantes
+        }
         mem.state = state
+        
         for(const p of pairs){
           const tile = document.createElement('div'); tile.className='tile'; tile.dataset.key=p._id; tile.dataset.pair=JSON.stringify(p)
           
           let contentHTML = ''
           if (p.type === 'image') {
-              // NOVO: Adicionado onerror para tentar uma solução de fallback ou diagnóstico.
               const fileId = p.url.split('id=')[1]
+              // Note: Usamos o URL original e o thumbnail como fallback para garantir o carregamento
               contentHTML = `<img src="${p.url}" alt="Item ${p._id.slice(0, -1)}" onerror="this.onerror=null; this.src='https://drive.google.com/thumbnail?id=${fileId}';" />`
           } else {
               contentHTML = p.text
@@ -365,31 +396,64 @@
           tile.addEventListener('click', ()=>onTile(tile))
           mem.grid.appendChild(tile)
         }
+        
         mem.status.textContent = 'Pronto. Clique em Iniciar Novo Jogo.'
+        mem.revealTimerEl.classList.add('hidden')
         mem.timeEl.textContent = fmtSec(state.seconds)
         mem.pairsEl.textContent = '0'
         mem.movesEl.textContent = '0'
         mem.scoreEl.textContent = '0'
-        // Garante que todos os timers estão limpos ao reiniciar
+        
+        // Atualiza display de movimentos disponíveis
+        mem.availableMovesEl.textContent = String(state.movesToPrize)
+        mem.availableMovesEl.classList.remove('moves-alert')
+        
         clearInterval(mem.timer)
         clearInterval(mem.revealCountdownTimer)
       }
 
       function onTile(tile){
-        const s = mem.state; if(!s.started || s.lock || tile.classList.contains('revealed')) return
+        const s = mem.state; 
+        
+        // Se o jogo não começou, está bloqueado ou a carta já está revelada, ignora
+        if(!s.started || s.lock || tile.classList.contains('revealed')) return
+        
+        // NOVO: Checagem se o PRÓXIMO movimento excederá o limite
+        // Usamos s.moves + 1 aqui, pois o movimento só é registrado após a abertura da segunda carta.
+        if (s.opened.length === 1 && (s.moves + 1) > s.movesToPrize) {
+            // Permite abrir a segunda carta, mas encerra logo após o registro do movimento
+            tile.classList.add('revealed'); s.opened.push(tile); // Permite o flip visual
+            s.moves++; mem.movesEl.textContent = String(s.moves);
+            s.movesLeft = s.movesToPrize - s.moves;
+            mem.availableMovesEl.textContent = String(s.movesLeft);
+            mem.availableMovesEl.classList.add('moves-alert');
+            endMemory('moves_exceeded');
+            return; 
+        }
+
         tile.classList.add('revealed'); s.opened.push(tile)
+        
         if(s.opened.length===2){
           s.lock = true; s.moves++; mem.movesEl.textContent = String(s.moves)
+          s.movesLeft = s.movesToPrize - s.moves // Atualiza o contador
+          mem.availableMovesEl.textContent = String(s.movesLeft)
+
+          // Alerta visual se estiver chegando perto (ex: <= 5 movimentos restantes)
+          if(s.movesLeft <= 5) {
+                mem.availableMovesEl.classList.add('moves-alert')
+          } else {
+                mem.availableMovesEl.classList.remove('moves-alert')
+          }
+          
           const [a,b] = s.opened
           const pa = JSON.parse(a.dataset.pair), pb = JSON.parse(b.dataset.pair)
           
-          // Compara por 'url' se for imagem
           const match = (pa.type===pb.type) && (pa.type === 'image' ? (pa.url===pb.url) : (pa.text===pb.text))
           
           if(match){
             s.pairs++; s.score += 10; mem.pairsEl.textContent=String(s.pairs); mem.scoreEl.textContent=String(s.score)
             s.opened = []; s.lock=false
-            if(s.pairs===10){ endMemory(true) }
+            if(s.pairs===10){ endMemory('win') }
           }else{
             s.score = Math.max(0, s.score-2); mem.scoreEl.textContent=String(s.score)
             mem.revealTimer = setTimeout(()=>{
@@ -407,15 +471,18 @@
         // Inicia a revelação de todas as cartas
         mem.grid.querySelectorAll('.tile').forEach(t=>t.classList.add('revealed'))
         
-        // Exibe e inicia o timer de revelação de 10 segundos
+        // Exibe o cronômetro de revelação (10, 9, 8...)
         s.revealCountdown = memoryConfig.reveal
-        mem.status.textContent = `Observação: Cartas abertas por ${s.revealCountdown}s...`
+        mem.status.textContent = 'Observação: Memorize em'
+        mem.revealTimerEl.classList.remove('hidden')
+        mem.revealTimerEl.textContent = `${s.revealCountdown}s...`
 
         mem.revealCountdownTimer = setInterval(()=>{
             s.revealCountdown--
-            mem.status.textContent = `Observação: Cartas abertas por ${s.revealCountdown}s...`
+            mem.revealTimerEl.textContent = `${s.revealCountdown}s...`
             if(s.revealCountdown <= 0){
                 clearInterval(mem.revealCountdownTimer)
+                mem.revealTimerEl.classList.add('hidden')
                 startMainTimer() // Inicia o jogo principal após a revelação
             }
         }, 1000)
@@ -424,26 +491,56 @@
       
       function startMainTimer(){
           const s = mem.state;
+          s.startTime = Date.now(); // Marca o início do jogo real
           mem.grid.querySelectorAll('.tile').forEach(t=>t.classList.remove('revealed'))
           mem.status.textContent = 'Valendo! Encontre todos os pares.'
+          mem.availableMovesEl.classList.remove('moves-alert') // Remove alerta se estiver vermelho
 
           mem.timer = setInterval(()=>{
             s.seconds--; mem.timeEl.textContent = fmtSec(s.seconds)
-            if(s.seconds<=0){ endMemory(false) }
+            if(s.seconds<=0){ endMemory('timeout') }
           },1000)
       }
 
-      function endMemory(win){
+      function endMemory(reason){
         const s = mem.state; if(s.finished) return; s.finished = true
         clearInterval(mem.timer); clearInterval(mem.revealCountdownTimer); 
-        const msg = win ? 'Parabéns! Todos os pares encontrados.' : 'Tempo esgotado.'
-        const prize = s.pairs >= s.pairsToPrize ? 'Elegível a brinde' : 'Sem brinde desta vez'
-        const finalMessage = `${msg} Pares: ${s.pairs}/10 • Pontos: ${s.score} • ${prize}`
-        mem.status.textContent = finalMessage
-        pushResult('memoria', { detail: msg, score: s.score, extra:{pairs:s.pairs,moves:s.moves,prize:(s.pairs>=s.pairsToPrize)} })
         
-        // MELHORIA: Substituir alert() por notificação customizada
-        showNotification(win ? 'Fim de Jogo!' : 'Tempo Esgotado!', finalMessage, buildMemory)
+        let title = ''
+        let finalMessage = ''
+        
+        if (reason === 'win') {
+            const endTime = Date.now()
+            // Calcula o tempo total de jogo (após os 10s de revelação)
+            const timeTaken = Math.floor((endTime - s.startTime) / 1000)
+            
+            title = 'Fim de Jogo!';
+            // Mensagem final simplificada solicitada
+            finalMessage = `Parabéns, você foi impressionante. Finalizou em ${timeTaken} segundos.`
+            
+            // Adiciona o status do brinde na notificação
+            let prizeStatus = ''
+            if (s.moves <= s.movesToPrize) {
+                 prizeStatus = `(Elegível a Brinde! ${s.moves} de ${s.movesToPrize} movimentos)`
+            } else {
+                 prizeStatus = `(Você completou, mas usou ${s.moves} movimentos. Limite ${s.movesToPrize})`
+            }
+            finalMessage = `${finalMessage} ${prizeStatus}`.trim()
+            
+        } else if (reason === 'moves_exceeded') {
+            title = 'Limite de Movimentos';
+            // Mensagem de movimentos excedidos solicitada
+            finalMessage = `Nº de movimentos (${s.moves}) excedidos (Limite ${s.movesToPrize}). Obrigado pela participação.`
+            
+        } else { // 'timeout'
+            title = 'Tempo Esgotado';
+            finalMessage = 'Tempo esgotado. Tente novamente para ganhar o brinde!'
+        }
+        
+        mem.status.textContent = finalMessage
+        pushResult('memoria', { detail: finalMessage, score: s.score, extra:{pairs:s.pairs,moves:s.moves,prize:(reason==='win' && s.moves<=s.movesToPrize)} })
+        
+        showNotification(title, finalMessage, buildMemory)
       }
 
       mem.startBtn.addEventListener('click', startMemory)
