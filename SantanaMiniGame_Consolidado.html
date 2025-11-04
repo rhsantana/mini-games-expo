@@ -71,7 +71,23 @@
     .tile.revealed .front{
         opacity: 0;
     }
-    .tile .label{font-weight:900;text-align:center;font-size:38px;color:var(--blue)}
+    .tile .label{
+        font-weight:900;
+        text-align:center;
+        font-size:38px;
+        color:var(--blue);
+        width: 100%; /* Permite que a imagem preencha */
+        height: 100%; /* Permite que a imagem preencha */
+        display: flex; /* Para centralizar a imagem se necessário */
+        justify-content: center;
+        align-items: center;
+    }
+    .tile .label img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain; /* Garante que a imagem se ajuste sem cortar */
+        border-radius: 8px; /* Opcional: para suavizar cantos das imagens */
+    }
 
     /* Roleta */
     .wheel-area{
@@ -251,7 +267,6 @@
     </footer>
   </div>
 
-  <!-- Estrutura da Notificação Customizada -->
   <div id="notificationOverlay" class="notification-overlay">
     <div class="notification-box">
       <h3 id="notificationTitle"></h3>
@@ -291,7 +306,7 @@
       tabs.forEach(t=> t.addEventListener('click', ()=>openTab(t.dataset.tab)))
       document.querySelectorAll('[data-open]').forEach(c=> c.addEventListener('click', ()=>openTab(c.dataset.open)))
 
-      // ---------- MEMÓRIA (1 minuto, emojis) ----------
+      // ---------- MEMÓRIA (1 minuto, IMAGENS) ----------
       const mem = {
         grid: document.getElementById('memGrid'),
         status: document.getElementById('memStatus'),
@@ -304,19 +319,20 @@
         state:null, timer:null, revealTimer:null, revealCountdownTimer: null
       }
 
+      // NOVO memoryConfig com URLs diretas do Google Drive
       const memoryConfig = {
         reveal:10, minutes:1, pairsPrizeMin:8,
         items: [
-            { type: 'image', url: 'https://drive.usercontent.google.com/download?id=1VF2oQNIhrKK168J96HEsOSvrbtBP9yG9&export=view' },
-            { type: 'image', url: 'https://santanatextil-my.sharepoint.com/personal/jfacanha_santanatextiles_com/Documents/Projetos%20de%20T%26D/PROJETOS%20ATUAIS/2025/PRAJ%c3%81/FUT%20CAMPO.jpg?Web=1' },
-            { type: 'image', url: 'https://santanatextil-my.sharepoint.com/personal/jfacanha_santanatextiles_com/Documents/Projetos%20de%20T%26D/PROJETOS%20ATUAIS/2025/PRAJ%c3%81/onibus.jpg?Web=1' },
-            { type: 'image', url: 'https://santanatextil-my.sharepoint.com/personal/jfacanha_santanatextiles_com/Documents/Projetos%20de%20T%26D/PROJETOS%20ATUAIS/2025/PRAJ%c3%81/Praja%20aniversariante%202012.JPG?Web=1' },
-            { type: 'image', url: 'https://santanatextil-my.sharepoint.com/personal/jfacanha_santanatextiles_com/Documents/Projetos%20de%20T%26D/PROJETOS%20ATUAIS/2025/PRAJ%c3%81/PRAJ%c3%81%20apontando.jpg?Web=1' },
-            { type: 'image', url: 'https://santanatextil-my.sharepoint.com/personal/jfacanha_santanatextiles_com/Documents/Projetos%20de%20T%26D/PROJETOS%20ATUAIS/2025/PRAJ%c3%81/Praja%20carnaval%202012.jpg?Web=1' },
-            { type: 'image', url: 'https://santanatextil-my.sharepoint.com/personal/jfacanha_santanatextiles_com/Documents/Projetos%20de%20T%26D/PROJETOS%20ATUAIS/2025/PRAJ%c3%81/PRAJ%c3%81%20dia%20das%20m%c3%a3es.jpg?Web=1' },
-            { type: 'image', url: 'https://santanatextil-my.sharepoint.com/personal/jfacanha_santanatextiles_com/Documents/Projetos%20de%20T%26D/PROJETOS%20ATUAIS/2025/PRAJ%c3%81/PRAJA%20junino.jpg?Web=1' },
-            { type: 'image', url: 'https://santanatextil-my.sharepoint.com/personal/jfacanha_santanatextiles_com/Documents/Projetos%20de%20T%26D/PROJETOS%20ATUAIS/2025/PRAJ%c3%81/Praja%20pascoa%202012.JPG?Web=1' },
-            { type: 'image', url: 'https://santanatextil-my.sharepoint.com/personal/jfacanha_santanatextiles_com/Documents/Projetos%20de%20T%26D/PROJETOS%20ATUAIS/2025/PRAJ%c3%81/PRAJ%c3%81%20pintor.JPG?Web=1' }
+            { type: 'image', url: 'https://drive.google.com/uc?export=view&id=1VF2oQNIhrKK168J96HEsOSvrbtBP9yG9' },
+            { type: 'image', url: 'https://drive.google.com/uc?export=view&id=1AGMicjx-jZkdURJiEj60BjJ_fXrpS1uN' },
+            { type: 'image', url: 'https://drive.google.com/uc?export=view&id=1MoA1Z0uV7YsfIxOkWKPde5smUnboQZ4a' },
+            { type: 'image', url: 'https://drive.google.com/uc?export=view&id=1pGK9pLr7MxuR1Jv3zLf0iycadeE6ttMK' },
+            { type: 'image', url: 'https://drive.google.com/uc?export=view&id=1Aa_5j_WnW4pGQRzaQtRJ1xxDXNuVvWGK' },
+            { type: 'image', url: 'https://drive.google.com/uc?export=view&id=1lFPpBHLFKSXowAxooRdIq1ZOUu26_INS' },
+            { type: 'image', url: 'https://drive.google.com/uc?export=view&id=1JS3vGa0RUC0cm7pDDHplh-38JYP4Y3YX' },
+            { type: 'image', url: 'https://drive.google.com/uc?export=view&id=19sYIrHM9gf9yNmDmNt7E_qdZB1f1j2tR' },
+            { type: 'image', url: 'https://drive.google.com/uc?export=view&id=1Q9OHdNerHzvyNUyuMcEbTayH8IbxCv8v' },
+            { type: 'image', url: 'https://drive.google.com/uc?export=view&id=14gWhy2w9_gAxEvK2HrVSH32QrGZbNWx4' }
         ]
       }
 
@@ -329,8 +345,17 @@
         mem.state = state
         for(const p of pairs){
           const tile = document.createElement('div'); tile.className='tile'; tile.dataset.key=p._id; tile.dataset.pair=JSON.stringify(p)
+          
+          // Renderiza uma tag <img>
+          let contentHTML = ''
+          if (p.type === 'image') {
+              contentHTML = `<img src="${p.url}" alt="Item ${p._id.slice(0, -1)}" />`
+          } else {
+              contentHTML = p.text
+          }
+
           tile.innerHTML = `
-            <div class="face back"><div class="label">${p.text}</div></div>
+            <div class="face back"><div class="label">${contentHTML}</div></div>
             <div class="face front"></div>
           `
           tile.addEventListener('click', ()=>onTile(tile))
@@ -353,7 +378,10 @@
           s.lock = true; s.moves++; mem.movesEl.textContent = String(s.moves)
           const [a,b] = s.opened
           const pa = JSON.parse(a.dataset.pair), pb = JSON.parse(b.dataset.pair)
-          const match = (pa.type===pb.type) && (pa.text===pb.text)
+          
+          // Compara por 'url'
+          const match = (pa.type===pb.type) && (pa.type === 'image' ? (pa.url===pb.url) : (pa.text===pb.text))
+
           if(match){
             s.pairs++; s.score += 10; mem.pairsEl.textContent=String(s.pairs); mem.scoreEl.textContent=String(s.score)
             s.opened = []; s.lock=false
