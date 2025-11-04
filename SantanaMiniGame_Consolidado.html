@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Mini‑Jogos da Feira • Stand Interativo (Azul & Branco) - Consolidado</title>
+  <style>
+    /* Paleta restrita: azul e branco */
+    :root{
+      --blue:#0a4cff; /* azul principal */
+      --blue-600:#093bcc; /* variação */
+      --white:#ffffff;
+      --ink:#0b1a3a; /* azul bem escuro para texto legível */
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial;color:var(--ink)}
+    a{color:var(--blue)}
+    .wrap{max-width:980px;margin:0 auto;padding:16px}
+    header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin:8px 0 16px}
+    .brand{display:flex;gap:10px;align-items:center}
+    .brand .logo{width:40px;height:40px;border-radius:10px;background:url('https://www.santanatextiles.com/wp-content/uploads/2020/11/icone-site-1-150x150.png') center/cover no-repeat}
+    h1{font-size:20px;margin:0;font-weight:800;letter-spacing:.2px;color:var(--white)}
+    .panel{background:#fff;border:2px solid var(--blue);border-radius:14px;padding:14px}
+    .grid3{display:grid;grid-template-columns:repeat(2,1fr);gap:14px} /* Apenas 2 colunas para os 2 jogos */
+    .card{background:#fff;border:2px solid var(--blue);border-radius:14px;padding:16px;transition:.15s transform;cursor:pointer;min-height:140px;display:flex;flex-direction:column;justify-content:space-between}
+    .card:hover{transform:translateY(-2px)}
+    .muted{color:#ffffff}
+    .btn{background:var(--blue);border:none;color:#fff;font-weight:800;padding:10px 14px;border-radius:10px;cursor:pointer}
+    .btn-ghost{background:#fff;border:2px solid var(--blue);color:var(--blue);font-weight:700;padding:8px 12px;border-radius:10px;cursor:pointer}
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .stack{display:flex;flex-direction:column;gap:10px}
+    .hidden{display:none !important}
+
+    /* Tabs */
+    .tabs{display:flex;gap:8px;margin:10px 0 14px;flex-wrap:wrap}
+    .tab{padding:8px 12px;border-radius:999px;border:2px solid var(--blue);cursor:pointer;background:#fff;color:var(--blue);font-weight:700}
+    .tab.active{background:var(--blue);color:#fff}
+
+    /* Memória */
+    .mem-wrap{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+    .tile{
+        position:relative;
+        aspect-ratio:1;
+        border-radius:12px;
+        overflow:hidden;
+        transition:box-shadow .15s ease;
+        cursor:pointer;
+        border:2px solid var(--blue);
+        background:#fff;
+    }
+    .tile .face{
+        position:absolute;
+        inset:0;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        padding:8px;
+        transition: opacity .35s ease;
+    }
+    .tile .front{
+        background:var(--blue);
+        z-index: 2;
+        opacity: 1;
+    }
+    .tile .back{
+        background:#fff;
+        z-index: 1;
+        opacity: 1;
+    }
+    .tile.revealed .front{
+        opacity: 0;
+    }
+    .tile .label{font-weight:900;text-align:center;font-size:38px;color:var(--blue)}
+
+    /* Roleta */
+    .wheel-area{
+      display: flex; 
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+    .wheel-wrap{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      align-items:center;
+      justify-content:center;
+    }
+    .pointer{width:0;height:0;border-left:14px solid transparent;border-right:14px solid transparent;border-top:24px solid var(--blue);}
+    /* MELHORIA: Responsividade da Roleta */
+    .wheel{
+      width: min(80vw, 320px); /* Ocupa 80% da largura da tela, mas não mais que 320px */
+      height: min(80vw, 320px);
+      border-radius:50%;
+      border:6px solid var(--blue);
+      transition:transform 4s cubic-bezier(.17,.67,.35,1.25);
+      background:#fff
+    }
+    .legend{
+      border:2px solid var(--blue);
+      border-radius:12px;
+      padding:10px;
+      max-width: 360px;
+      width: 100%;
+    }
+    .legend h4{margin:0 0 8px 0;color:var(--blue-600)}
+    .legend li{margin:4px 0}
+
+    footer{opacity:.9;text-align:center;font-size:12px;margin-top:20px;color:#2b4aa2}
+
+    @media (max-width:980px){ .grid3{grid-template-columns:1fr} }
+
+    /* Estilos para a notificação customizada (Melhoria UX) */
+    .notification-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+    }
+
+    .notification-overlay.visible {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .notification-box {
+        background: var(--white);
+        border: 4px solid var(--blue);
+        border-radius: 16px;
+        padding: 30px;
+        max-width: 400px;
+        text-align: center;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        transform: scale(0.9);
+        transition: transform 0.3s ease;
+    }
+
+    .notification-overlay.visible .notification-box {
+        transform: scale(1);
+    }
+
+    .notification-box h3 {
+        color: var(--blue);
+        margin-top: 0;
+        font-size: 24px;
+    }
+
+    .notification-box p {
+        margin-bottom: 20px;
+        font-size: 16px;
+    }
+
+    .notification-box .btn {
+        width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <h1>Mini‑Games da Santana</h1>
+          <div class="muted">Divirta-se com a gente!</div>
+        </div>
+      </div>
+      <div class="row">
+        <span id="testBadge" class="muted" style="font-size:12px"></span>
+      </div>
+    </header>
+
+    <div class="tabs">
+      <div class="tab active" data-tab="home">Início</div>
+      <div class="tab" data-tab="memory">Jogo da Memória</div>
+      <div class="tab" data-tab="roulette">Roleta Digital</div>
+    </div>
+
+    <section id="home" class="panel">
+      <div class="grid3">
+        <div class="card" data-open="memory">
+          <div>
+            <h3>Jogo da Memória (4×5)</h3>
+            <p class="muted">Revelação: 10s • Tempo total: <strong>1 min</strong>.</p>
+          </div>
+          <button class="btn">Entrar</button>
+        </div>
+        <div class="card" data-open="roulette">
+          <div>
+            <h3>Roleta Digital</h3>
+            <p class="muted">Fatiada 1–6. Resultado conforme legenda.</p>
+          </div>
+          <button class="btn">Entrar</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="memory" class="panel hidden">
+      <div class="row" style="justify-content:space-between">
+        <h2 style="margin:0;color:var(--blue-600)">Jogo da Memória</h2>
+        <div class="row">
+          <div id="memStatus" class="muted">Aguardando início…</div>
+          <button class="btn" id="memStart">Iniciar Novo Jogo</button>
+          <button class="btn-ghost" id="memReset">Reiniciar</button>
+        </div>
+      </div>
+      <div class="row" style="gap:16px;margin:10px 0;color:var(--blue-600)">
+        <div>Tempo: <strong id="memTime">00:01:00</strong></div>
+        <div>Pares: <strong id="pairsFound">0</strong>/10</div>
+        <div>Jogadas: <strong id="moves">0</strong></div>
+        <div>Pontuação: <strong id="score">0</strong></div>
+      </div>
+      <div class="mem-wrap" id="memGrid"></div>
+    </section>
+
+    <section id="roulette" class="panel hidden">
+      <div class="row" style="justify-content:space-between">
+        <h2 style="margin:0;color:var(--blue-600)">Roleta Digital</h2>
+        <div class="row">
+          <button class="btn" id="spinBtn">Girar</button>
+          <button class="btn-ghost" id="spinReset">Reset</button>
+        </div>
+      </div>
+      <div class="wheel-area" style="margin-top:8px">
+        <div class="wheel-wrap">
+          <div class="pointer" aria-hidden="true"></div>
+          <svg viewBox="0 0 100 100" class="wheel" id="wheel" aria-label="Roleta 1 a 6">
+            </svg>
+          <div id="spinResult" class="muted">Pronto para girar.</div>
+        </div>
+        <div class="legend">
+          <h4>Legenda</h4>
+          <ol id="legendList" style="padding-left:18px;margin:0">
+            </ol>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      Mini‑Games Stand Interativo.
+    </footer>
+  </div>
+
+  <!-- Estrutura da Notificação Customizada -->
+  <div id="notificationOverlay" class="notification-overlay">
+    <div class="notification-box">
+      <h3 id="notificationTitle"></h3>
+      <p id="notificationMessage"></p>
+      <button class="btn" id="notificationButton">Entendido</button>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      // ---------- Utilidades (Sem persistência, apenas log) ----------
+      const pushResult = (type, payload)=>{ console.log(`[LOG] Tipo: ${type}`, payload); }
+      const pad = n=> n.toString().padStart(2,'0')
+      const fmtSec = s=>{ const h=Math.floor(s/3600), m=Math.floor((s%3600)/60), ss=s%60; return `${pad(h)}:${pad(m)}:${pad(ss)}` }
+      const shuffle=a=>{ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]] } return a }
+
+      // ---------- Notificação Customizada (Melhoria UX) ----------
+      const notificationOverlay = document.getElementById('notificationOverlay')
+      const notificationTitle = document.getElementById('notificationTitle')
+      const notificationMessage = document.getElementById('notificationMessage')
+      const notificationButton = document.getElementById('notificationButton')
+
+      function showNotification(title, message, callback){
+        notificationTitle.textContent = title
+        notificationMessage.textContent = message
+        notificationOverlay.classList.add('visible')
+        notificationButton.onclick = ()=>{
+            notificationOverlay.classList.remove('visible')
+            if(callback) callback()
+        }
+      }
+
+      // ---------- Tabs ----------
+      const tabs=[...document.querySelectorAll('.tab')]
+      const sections={home:document.getElementById('home'), memory:document.getElementById('memory'), roulette:document.getElementById('roulette')}
+      const openTab=id=>{ tabs.forEach(t=>t.classList.toggle('active', t.dataset.tab===id)); Object.entries(sections).forEach(([k,el])=>el.classList.toggle('hidden', k!==id)) }
+      tabs.forEach(t=> t.addEventListener('click', ()=>openTab(t.dataset.tab)))
+      document.querySelectorAll('[data-open]').forEach(c=> c.addEventListener('click', ()=>openTab(c.dataset.open)))
+
+      // ---------- MEMÓRIA (1 minuto, emojis) ----------
+      const mem = {
+        grid: document.getElementById('memGrid'),
+        status: document.getElementById('memStatus'),
+        timeEl: document.getElementById('memTime'),
+        pairsEl: document.getElementById('pairsFound'),
+        movesEl: document.getElementById('moves'),
+        scoreEl: document.getElementById('score'),
+        startBtn: document.getElementById('memStart'),
+        resetBtn: document.getElementById('memReset'),
+        state:null, timer:null, revealTimer:null, revealCountdownTimer: null
+      }
+
+      const memoryConfig = {
+        reveal:10, minutes:1, pairsPrizeMin:8,
+        items: [
+          {type:'text', text:'🧵'}, {type:'text', text:'🪡'}, {type:'text', text:'🧶'}, {type:'text', text:'👗'}, {type:'text', text:'👚'},
+          {type:'text', text:'👖'}, {type:'text', text:'👔'}, {type:'text', text:'🧥'}, {type:'text', text:'🧦'}, {type:'text', text:'🧢'}
+        ]
+      }
+
+      function buildMemory(){
+        const items = memoryConfig.items.slice(0,10)
+        const pairs = items.flatMap((it, idx)=>[{...it, _id:idx+'a'},{...it, _id:idx+'b'}])
+        shuffle(pairs)
+        mem.grid.innerHTML = ''
+        const state = {started:false, finished:false, seconds: memoryConfig.minutes*60, reveal: memoryConfig.reveal, revealCountdown: memoryConfig.reveal, opened:[], lock:false, pairs:0, moves:0, score:0, pairsToPrize: memoryConfig.pairsPrizeMin}
+        mem.state = state
+        for(const p of pairs){
+          const tile = document.createElement('div'); tile.className='tile'; tile.dataset.key=p._id; tile.dataset.pair=JSON.stringify(p)
+          tile.innerHTML = `
+            <div class="face back"><div class="label">${p.text}</div></div>
+            <div class="face front"></div>
+          `
+          tile.addEventListener('click', ()=>onTile(tile))
+          mem.grid.appendChild(tile)
+        }
+        mem.status.textContent = 'Pronto. Clique em Iniciar Novo Jogo.'
+        mem.timeEl.textContent = fmtSec(state.seconds)
+        mem.pairsEl.textContent = '0'
+        mem.movesEl.textContent = '0'
+        mem.scoreEl.textContent = '0'
+        // Garante que todos os timers estão limpos ao reiniciar
+        clearInterval(mem.timer)
+        clearInterval(mem.revealCountdownTimer)
+      }
+
+      function onTile(tile){
+        const s = mem.state; if(!s.started || s.lock || tile.classList.contains('revealed')) return
+        tile.classList.add('revealed'); s.opened.push(tile)
+        if(s.opened.length===2){
+          s.lock = true; s.moves++; mem.movesEl.textContent = String(s.moves)
+          const [a,b] = s.opened
+          const pa = JSON.parse(a.dataset.pair), pb = JSON.parse(b.dataset.pair)
+          const match = (pa.type===pb.type) && (pa.text===pb.text)
+          if(match){
+            s.pairs++; s.score += 10; mem.pairsEl.textContent=String(s.pairs); mem.scoreEl.textContent=String(s.score)
+            s.opened = []; s.lock=false
+            if(s.pairs===10){ endMemory(true) }
+          }else{
+            s.score = Math.max(0, s.score-2); mem.scoreEl.textContent=String(s.score)
+            mem.revealTimer = setTimeout(()=>{
+              a.classList.remove('revealed'); b.classList.remove('revealed')
+              s.opened = []; s.lock=false
+            }, 1000)
+          }
+        }
+      }
+
+      function startMemory(){
+        const s = mem.state; if(s.started) return
+        s.started = true; 
+        
+        // Inicia a revelação de todas as cartas
+        mem.grid.querySelectorAll('.tile').forEach(t=>t.classList.add('revealed'))
+        
+        // Exibe e inicia o timer de revelação de 10 segundos
+        s.revealCountdown = memoryConfig.reveal
+        mem.status.textContent = `Observação: Cartas abertas por ${s.revealCountdown}s...`
+
+        mem.revealCountdownTimer = setInterval(()=>{
+            s.revealCountdown--
+            mem.status.textContent = `Observação: Cartas abertas por ${s.revealCountdown}s...`
+            if(s.revealCountdown <= 0){
+                clearInterval(mem.revealCountdownTimer)
+                startMainTimer() // Inicia o jogo principal após a revelação
+            }
+        }, 1000)
+
+      }
+      
+      function startMainTimer(){
+          const s = mem.state;
+          mem.grid.querySelectorAll('.tile').forEach(t=>t.classList.remove('revealed'))
+          mem.status.textContent = 'Valendo! Encontre todos os pares.'
+
+          mem.timer = setInterval(()=>{
+            s.seconds--; mem.timeEl.textContent = fmtSec(s.seconds)
+            if(s.seconds<=0){ endMemory(false) }
+          },1000)
+      }
+
+      function endMemory(win){
+        const s = mem.state; if(s.finished) return; s.finished = true
+        clearInterval(mem.timer); clearInterval(mem.revealCountdownTimer); 
+        const msg = win ? 'Parabéns! Todos os pares encontrados.' : 'Tempo esgotado.'
+        const prize = s.pairs >= s.pairsToPrize ? 'Elegível a brinde' : 'Sem brinde desta vez'
+        const finalMessage = `${msg} Pares: ${s.pairs}/10 • Pontos: ${s.score} • ${prize}`
+        mem.status.textContent = finalMessage
+        pushResult('memoria', { detail: msg, score: s.score, extra:{pairs:s.pairs,moves:s.moves,prize:(s.pairs>=s.pairsToPrize)} })
+        
+        // MELHORIA: Substituir alert() por notificação customizada
+        showNotification(win ? 'Fim de Jogo!' : 'Tempo Esgotado!', finalMessage, buildMemory)
+      }
+
+      mem.startBtn.addEventListener('click', startMemory)
+      mem.resetBtn.addEventListener('click', buildMemory)
+      buildMemory()
+
+      // ---------- ROLETA (somente números 1–6 + legenda) ----------
+      const wheelEl = document.getElementById('wheel')
+      const spinBtn = document.getElementById('spinBtn')
+      const spinReset = document.getElementById('spinReset')
+      const spinResult = document.getElementById('spinResult')
+      const legendList = document.getElementById('legendList')
+      let spinning=false, angle=0
+
+      const wheelMap = [
+        'Passou a vez',
+        'Vale caneta',
+        'Vale orientação de carreira',
+        'Vale bloco de notas',
+        'Tente novamente',
+        'Vale chaveiro'
+      ]
+
+      function drawLegend(){
+        legendList.innerHTML=''
+        wheelMap.forEach((txt,i)=>{
+          const li = document.createElement('li'); li.textContent = `${txt}`; legendList.appendChild(li)
+        })
+      }
+
+      function drawWheel(){
+        wheelEl.innerHTML = ''
+        const center = {x:50,y:50}, r=48
+        for(let i=0;i<6;i++){
+          const a0 = (i*60-90) * Math.PI/180, a1 = ((i+1)*60-90)*Math.PI/180
+          const x0 = center.x + r*Math.cos(a0), y0=center.y + r*Math.sin(a0)
+          const x1 = center.x + r*Math.cos(a1), y1=center.y + r*Math.sin(a1)
+          const path = `M ${center.x} ${center.y} L ${x0} ${y0} A ${r} ${r} 0 0 1 ${x1} ${y1} Z`
+          const g = document.createElementNS('http://www.w3.org/2000/svg','g')
+          const p = document.createElementNS('http://www.w3.org/2000/svg','path'); p.setAttribute('d', path); p.setAttribute('fill', i%2? '#ffffff':'#0a4cff'); p.setAttribute('opacity','1')
+          const text = document.createElementNS('http://www.w3.org/2000/svg','text'); text.setAttribute('x','50'); text.setAttribute('y','50'); text.setAttribute('fill', i%2? '#0a4cff':'#ffffff'); text.setAttribute('font-size','10'); text.setAttribute('font-weight','900'); text.setAttribute('text-anchor','middle'); text.setAttribute('dominant-baseline','middle'); 
+          text.setAttribute('transform',`rotate(${i*60 + 30}, 50, 50) translate(0, -20)`);
+          text.textContent = String(i+1)
+          g.appendChild(p); g.appendChild(text); wheelEl.appendChild(g)
+        }
+        angle = 0; wheelEl.style.transform = `rotate(${angle}deg)`; spinResult.textContent = 'Pronto para girar.'
+      }
+
+      function spin(){ if(spinning) return; spinning=true
+        const idx = Math.floor(Math.random()*6)
+        const rounds = 6 + Math.floor(Math.random()*6)
+        const targetAngle = 360*rounds + (5 - idx)*60 + 30
+        angle = targetAngle
+        wheelEl.style.transform = `rotate(${angle}deg)`
+        setTimeout(()=>{
+          spinning=false
+          const selectedIndex = idx 
+          spinResult.textContent = `Resultado: ${selectedIndex+1} — ${wheelMap[selectedIndex]}`
+          pushResult('roleta', { detail: `n${selectedIndex+1}`, extra:{meaning: wheelMap[selectedIndex]} })
+        }, 4100)
+      }
+      spinBtn.addEventListener('click', spin)
+      spinReset.addEventListener('click', ()=>{ drawWheel(); drawLegend() })
+      drawWheel(); drawLegend()
+
+      // ---------- AUTOTESTES (Simplificados) ----------
+      function runSelfTests(){
+        const log = []
+        // 1) Memória 20 cartas
+        buildMemory(); const tiles = document.querySelectorAll('#memGrid .tile').length; log.push({name:'Memória: 20 cartas', pass: tiles===20, got: tiles})
+        // 2) Roleta 6 fatias
+        drawWheel(); const slicesCount = document.querySelectorAll('#wheel g').length; log.push({name:'Roleta: 6 fatias', pass: slicesCount===6, got: slicesCount})
+
+        const allPass = log.every(t=>t.pass)
+        const badge = document.getElementById('testBadge')
+        console.group('Autotestes Mini‑Jogos (Azul&Branco)')
+        log.forEach(t=> console[t.pass?'log':'error'](`${t.pass?'✔':'✖'} ${t.name} — obtido:`, t.got) )
+        console.groupEnd()
+      }
+      setTimeout(runSelfTests, 60)
+    })();
+  </script>
+</body>
+</html>
