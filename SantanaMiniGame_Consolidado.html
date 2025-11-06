@@ -76,7 +76,6 @@
         text-align:center;
         font-size:38px;
         color:var(--blue);
-        /* GARANTE QUE O CONTAINER DA IMAGEM É DO TAMANHO TOTAL */
         width: 100%; 
         height: 100%; 
         display: flex; 
@@ -84,7 +83,6 @@
         align-items: center;
     }
     .tile .label img {
-        /* OTIMIZAÇÃO: Garante que a imagem se comporta como um bloco e preenche */
         display: block; 
         max-width: 100%;
         max-height: 100%;
@@ -107,9 +105,8 @@
       justify-content:center;
     }
     .pointer{width:0;height:0;border-left:14px solid transparent;border-right:14px solid transparent;border-top:24px solid var(--blue);}
-    /* MELHORIA: Responsividade da Roleta */
     .wheel{
-      width: min(80vw, 320px); /* Ocupa 80% da largura da tela, mas não mais que 320px */
+      width: min(80vw, 320px); 
       height: min(80vw, 320px);
       border-radius:50%;
       border:6px solid var(--blue);
@@ -183,21 +180,19 @@
         width: 100%;
     }
     
-    /* Novo estilo para destacar o cronômetro de revelação */
     #memRevealTimer {
       font-weight: 800;
-      color: var(--blue); /* Cor de destaque */
+      color: var(--blue); 
       margin-left: 5px;
     }
     
-    /* Estilo para movimentos restantes */
     .moves-available {
         font-weight: 800;
         color: var(--blue);
     }
     .moves-alert {
         font-weight: 800;
-        color: #ff4c4c; /* Vermelho para alerta */
+        color: #ff4c4c; 
     }
   </style>
 </head>
@@ -234,7 +229,7 @@
         <div class="card" data-open="roulette">
           <div>
             <h3>Roleta Digital</h3>
-            <p class="muted">Fatiada 1–6. Resultado conforme legenda.</p>
+            <p class="muted">Fatiada 1–10. Resultado conforme legenda.</p>
           </div>
           <button class="btn">Entrar</button>
         </div>
@@ -265,18 +260,17 @@
         <h2 style="margin:0;color:var(--blue-600)">Roleta Digital</h2>
         <div class="row">
           <button class="btn" id="spinBtn">Girar</button>
-          <button class="btn-ghost" id="spinReset">Reset</button>
         </div>
       </div>
       <div class="wheel-area" style="margin-top:8px">
         <div class="wheel-wrap">
           <div class="pointer" aria-hidden="true"></div>
-          <svg viewBox="0 0 100 100" class="wheel" id="wheel" aria-label="Roleta 1 a 6">
+          <svg viewBox="0 0 100 100" class="wheel" id="wheel" aria-label="Roleta 1 a 10">
             </svg>
-          <div id="spinResult" class="muted">Pronto para girar.</div>
+          <div id="spinResult" class="muted">PRONTO PARA GIRAR.</div>
         </div>
         <div class="legend">
-          <h4>Legenda</h4>
+          <h4>Legenda de Brindes</h4>
           <ol id="legendList" style="padding-left:18px;margin:0">
             </ol>
         </div>
@@ -295,6 +289,8 @@
       <button class="btn" id="notificationButton">Entendido</button>
     </div>
   </div>
+  
+  <audio id="prizeSound" src="[SUBSTITUA PELA URL DO SEU SOM DE BRINDE AQUI]"></audio>
 
   <script>
     (function(){
@@ -303,6 +299,19 @@
       const pad = n=> n.toString().padStart(2,'0')
       const fmtSec = s=>{ const h=Math.floor(s/3600), m=Math.floor((s%3600)/60), ss=s%60; return `${pad(h)}:${pad(m)}:${pad(ss)}` }
       const shuffle=a=>{ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]] } return a }
+      
+      // FUNÇÃO DE ÁUDIO
+      function playPrizeSound(){
+          const audioEl = document.getElementById('prizeSound');
+          if(audioEl && audioEl.src && audioEl.src !== window.location.href){ // Verifica se a URL foi substituída
+              // Reseta e toca
+              audioEl.pause();
+              audioEl.currentTime = 0;
+              audioEl.play().catch(e => console.error("Erro ao tocar áudio:", e));
+          } else {
+              console.warn("Áudio não configurado. Por favor, substitua a URL do som de brinde.");
+          }
+      }
 
       // ---------- Notificação Customizada (Melhoria UX) ----------
       const notificationOverlay = document.getElementById('notificationOverlay')
@@ -312,7 +321,8 @@
 
       function showNotification(title, message, callback){
         notificationTitle.textContent = title
-        notificationMessage.textContent = message
+        // Adiciona formatação Markdown simples (negrito)
+        notificationMessage.innerHTML = message.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
         notificationOverlay.classList.add('visible')
         notificationButton.onclick = ()=>{
             notificationOverlay.classList.remove('visible')
@@ -331,22 +341,21 @@
       const mem = {
         grid: document.getElementById('memGrid'),
         status: document.getElementById('memStatus'),
-        revealTimerEl: document.getElementById('memRevealTimer'), // Contador 10, 9, 8...
+        revealTimerEl: document.getElementById('memRevealTimer'), 
         timeEl: document.getElementById('memTime'),
         pairsEl: document.getElementById('pairsFound'),
         movesEl: document.getElementById('moves'),
         scoreEl: document.getElementById('score'),
-        availableMovesEl: document.getElementById('memAvailableMoves'), // NOVO: Movimentos restantes
+        availableMovesEl: document.getElementById('memAvailableMoves'), 
         startBtn: document.getElementById('memStart'),
         resetBtn: document.getElementById('memReset'),
         state:null, timer:null, revealTimer:null, revealCountdownTimer: null
       }
 
-      // memoryConfig: Tempo total definido para 50 segundos, limite de 25 movimentos
       const memoryConfig = {
         reveal:10, 
-        seconds:50, // MUDANÇA AQUI: Tempo total para 50 segundos
-        movesPrizeMax:25, // MUDANÇA AQUI: Limite máximo de movimentos para 25
+        seconds:50, 
+        movesPrizeMax:25, 
         items: [
             // Imagens que você confirmou que funcionaram
             { type: 'image', url: 'https://drive.google.com/uc?export=view&id=1VF2oQNIhrKK168J96HEsOSvrbtBP9yG9' },
@@ -373,7 +382,7 @@
           opened:[], lock:false, pairs:0, moves:0, score:0, 
           movesToPrize: memoryConfig.movesPrizeMax, 
           startTime: 0,
-          movesLeft: memoryConfig.movesPrizeMax // Inicializa movimentos restantes
+          movesLeft: memoryConfig.movesPrizeMax 
         }
         mem.state = state
         
@@ -418,11 +427,10 @@
         // Se o jogo não começou, está bloqueado ou a carta já está revelada, ignora
         if(!s.started || s.lock || tile.classList.contains('revealed')) return
         
-        // NOVO: Checagem se o PRÓXIMO movimento excederá o limite
-        // Usamos s.moves + 1 aqui, pois o movimento só é registrado após a abertura da segunda carta.
+        // Checagem se o PRÓXIMO movimento excederá o limite
         if (s.opened.length === 1 && (s.moves + 1) > s.movesToPrize) {
             // Permite abrir a segunda carta, mas encerra logo após o registro do movimento
-            tile.classList.add('revealed'); s.opened.push(tile); // Permite o flip visual
+            tile.classList.add('revealed'); s.opened.push(tile); 
             s.moves++; mem.movesEl.textContent = String(s.moves);
             s.movesLeft = s.movesToPrize - s.moves;
             mem.availableMovesEl.textContent = String(s.movesLeft);
@@ -514,27 +522,27 @@
             // Calcula o tempo total de jogo (após os 10s de revelação)
             const timeTaken = Math.floor((endTime - s.startTime) / 1000)
             
-            title = 'Fim de Jogo!';
+            title = 'FIM DE JOGO!';
             // Mensagem final simplificada solicitada
-            finalMessage = `Parabéns, você foi impressionante. Finalizou em ${timeTaken} segundos.`
+            finalMessage = `PARABÉNS, VOCÊ FOI IMPRESSIONANTE. FINALIZOU EM ${timeTaken} SEGUNDOS.`
             
             // Adiciona o status do brinde na notificação
             let prizeStatus = ''
             if (s.moves <= s.movesToPrize) {
-                 prizeStatus = `(Elegível a Brinde! ${s.moves} de ${s.movesToPrize} movimentos)`
+                 prizeStatus = `(ELEGÍVEL A BRINDE! ${s.moves} DE ${s.movesToPrize} MOVIMENTOS)`
             } else {
-                 prizeStatus = `(Você completou, mas usou ${s.moves} movimentos. Limite ${s.movesToPrize})`
+                 prizeStatus = `(VOCÊ COMPLETOU, MAS USOU ${s.moves} MOVIMENTOS. LIMITE ${s.movesToPrize})`
             }
             finalMessage = `${finalMessage} ${prizeStatus}`.trim()
             
         } else if (reason === 'moves_exceeded') {
-            title = 'Limite de Movimentos';
+            title = 'LIMITE DE MOVIMENTOS';
             // Mensagem de movimentos excedidos solicitada
-            finalMessage = `Nº de movimentos (${s.moves}) excedidos (Limite ${s.movesToPrize}). Obrigado pela participação.`
+            finalMessage = `Nº DE MOVIMENTOS (${s.moves}) EXCEDIDOS (LIMITE ${s.movesToPrize}). OBRIGADO PELA PARTICIPAÇÃO.`
             
         } else { // 'timeout'
-            title = 'Tempo Esgotado';
-            finalMessage = 'Tempo esgotado. Tente novamente para ganhar o brinde!'
+            title = 'TEMPO ESGOTADO';
+            finalMessage = 'TEMPO ESGOTADO. TENTE NOVAMENTE PARA GANHAR O BRINDE!'
         }
         
         mem.status.textContent = finalMessage
@@ -547,72 +555,146 @@
       mem.resetBtn.addEventListener('click', buildMemory)
       buildMemory()
 
-      // ---------- ROLETA (somente números 1–6 + legenda) ----------
+      // ---------- ROLETA (SORTEIO PONDERADO E VISUALMENTE CORRETO - 10 Fatias) ----------
       const wheelEl = document.getElementById('wheel')
       const spinBtn = document.getElementById('spinBtn')
-      const spinReset = document.getElementById('spinReset')
       const spinResult = document.getElementById('spinResult')
       const legendList = document.getElementById('legendList')
       let spinning=false, angle=0
 
-      const wheelMap = [
-        'Passou a vez',
-        'Vale caneta',
-        'Vale orientação de carreira',
-        'Vale bloco de notas',
-        'Tente novamente',
-        'Vale chaveiro'
-      ]
+      // Lista de prêmios e pesos, em ORDEM ALFABÉTICA (10 Fatias)
+      const prizeWeights = [
+          { name: 'BLOCO DE NOTAS', weight: 11, index: 0 },
+          { name: 'CANETA', weight: 13, index: 1 },
+          { name: 'CHAVEIRO', weight: 1, index: 2 },
+          { name: 'CHOCOLATE', weight: 16, index: 3 }, 
+          { name: 'MARCADOR DE PÁGINA', weight: 8, index: 4 },
+          { name: 'PASSOU A VEZ', weight: 6, index: 5 },
+          { name: 'TENTE NOVAMENTE', weight: 16, index: 6 },
+          { name: 'VALE CURSO: ENTREVISTA DE EXCELÊNCIA', weight: 17, index: 7 },
+          { name: 'VALE CURSO: ORIENTAÇÃO DE CARREIRA', weight: 10, index: 8 },
+          { name: 'VALE VISITA À FÁBRICA', weight: 4, index: 9 }
+      ];
 
+      // O mapa da roleta VISUAL (10 fatias) - FIXO E ORDENADO ALFABETICAMENTE
+      const wheelMap = prizeWeights.map(p => p.name); 
+      const totalWeight = prizeWeights.reduce((sum, p) => sum + p.weight, 0); 
+
+      // Função principal de sorteio, usando o peso fornecido
+      function getWeightedPrize() {
+          let random = Math.random() * totalWeight;
+          let prize = null;
+          let index = -1;
+
+          for (let i = 0; i < prizeWeights.length; i++) {
+              if (random < prizeWeights[i].weight) {
+                  prize = prizeWeights[i].name;
+                  index = i;
+                  break;
+              }
+              random -= prizeWeights[i].weight;
+          }
+          
+          return { prize: prize || prizeWeights[0].name, index: index !== -1 ? index : 0 }; 
+      }
+      
+      // ALTERAÇÃO AQUI: Remove o percentual da legenda
       function drawLegend(){
         legendList.innerHTML=''
-        wheelMap.forEach((txt,i)=>{
-          const li = document.createElement('li'); li.textContent = `${txt}`; legendList.appendChild(li)
+        prizeWeights.forEach((item, index)=>{
+          const li = document.createElement('li'); 
+          // O item original tem o nome (ex: "BLOCO DE NOTAS") e o peso (ex: 6)
+          li.textContent = `${item.name}`; // Sem a numeração e sem o percentual
+          legendList.appendChild(li)
         })
       }
 
       function drawWheel(){
         wheelEl.innerHTML = ''
         const center = {x:50,y:50}, r=48
-        for(let i=0;i<6;i++){
-          const a0 = (i*60-90) * Math.PI/180, a1 = ((i+1)*60-90)*Math.PI/180
+        const numSlices = 10 // Fixo em 10 fatias
+        const angleStep = 360 / numSlices // 36 graus
+
+        for(let i=0;i<numSlices;i++){
+          const a0 = (i*angleStep-90) * Math.PI/180, a1 = ((i+1)*angleStep-90)*Math.PI/180
           const x0 = center.x + r*Math.cos(a0), y0=center.y + r*Math.sin(a0)
           const x1 = center.x + r*Math.cos(a1), y1=center.y + r*Math.sin(a1)
           const path = `M ${center.x} ${center.y} L ${x0} ${y0} A ${r} ${r} 0 0 1 ${x1} ${y1} Z`
           const g = document.createElementNS('http://www.w3.org/2000/svg','g')
           const p = document.createElementNS('http://www.w3.org/2000/svg','path'); p.setAttribute('d', path); p.setAttribute('fill', i%2? '#ffffff':'#0a4cff'); p.setAttribute('opacity','1')
-          const text = document.createElementNS('http://www.w3.org/2000/svg','text'); text.setAttribute('x','50'); text.setAttribute('y','50'); text.setAttribute('fill', i%2? '#0a4cff':'#ffffff'); text.setAttribute('font-size','10'); text.setAttribute('font-weight','900'); text.setAttribute('text-anchor','middle'); text.setAttribute('dominant-baseline','middle'); 
-          text.setAttribute('transform',`rotate(${i*60 + 30}, 50, 50) translate(0, -20)`);
-          text.textContent = String(i+1)
+          
+          // Texto: O NÚMERO da fatia (1 a 10)
+          const text = document.createElementNS('http://www.w3.org/2000/svg','text'); 
+          text.setAttribute('x','50'); 
+          text.setAttribute('y','50'); 
+          text.setAttribute('fill', i%2? '#0a4cff':'#ffffff'); 
+          text.setAttribute('font-size','8'); 
+          text.setAttribute('font-weight','900'); 
+          text.setAttribute('text-anchor','middle'); 
+          text.setAttribute('dominant-baseline','middle'); 
+          text.setAttribute('transform',`rotate(${i*angleStep + angleStep/2}, 50, 50) translate(0, -20)`);
+          text.textContent = String(i+1) 
+          
           g.appendChild(p); g.appendChild(text); wheelEl.appendChild(g)
         }
-        angle = 0; wheelEl.style.transform = `rotate(${angle}deg)`; spinResult.textContent = 'Pronto para girar.'
+        angle = 0; wheelEl.style.transform = `rotate(${angle}deg)`; spinResult.textContent = 'PRONTO PARA GIRAR.'
       }
 
-      function spin(){ if(spinning) return; spinning=true
-        const idx = Math.floor(Math.random()*6)
-        const rounds = 6 + Math.floor(Math.random()*6)
-        const targetAngle = 360*rounds + (5 - idx)*60 + 30
+      function spin(){ 
+        if(spinning) return; spinning=true
+        
+        const numSlices = 10
+        const angleStep = 360 / numSlices 
+        
+        // Voltas aleatórias (entre 8 e 15)
+        const rounds = 8 + Math.floor(Math.random()*8) 
+        
+        // 1. SORTEIA O PRÊMIO REAL E OBTÉM O ÍNDICE VISUAL
+        const { prize: realPrize, index: realIndex } = getWeightedPrize(); 
+        
+        // 2. CALCULA O ÂNGULO ALVO PARA APONTAR PARA O PRÊMIO REAL SORTEADO
+        const targetAngle = 360*rounds + (numSlices - 1 - realIndex)*angleStep + angleStep/2 
         angle = targetAngle
         wheelEl.style.transform = `rotate(${angle}deg)`
+        
         setTimeout(()=>{
           spinning=false
-          const selectedIndex = idx 
-          spinResult.textContent = `Resultado: ${selectedIndex+1} — ${wheelMap[selectedIndex]}`
-          pushResult('roleta', { detail: `n${selectedIndex+1}`, extra:{meaning: wheelMap[selectedIndex]} })
+          
+          spinResult.textContent = `RESULTADO: ${realIndex + 1} — ${realPrize}`
+          
+          pushResult('roleta', { 
+            detail: `SORTEADO_N${realIndex + 1}_${realPrize}`, 
+            extra:{premio_real: realPrize} 
+          })
+          
+          // APLICAÇÃO DO ÁUDIO
+          const isPrize = !['PASSOU A VEZ', 'TENTE NOVAMENTE'].includes(realPrize.toUpperCase().trim())
+          if (isPrize) {
+              playPrizeSound();
+              showNotification('PARABÉNS!', `VOCÊ GANHOU: **${realPrize}**`, ()=>{ /* nenhuma ação */ })
+          } else {
+              showNotification('QUE PENA!', `VOCÊ TIROU: **${realPrize}**`, ()=>{ /* nenhuma ação */ })
+          }
+          
         }, 4100)
       }
+      
       spinBtn.addEventListener('click', spin)
-      spinReset.addEventListener('click', ()=>{ drawWheel(); drawLegend() })
-      drawWheel(); drawLegend()
+      
+      function initWheel() {
+          drawWheel(); 
+          drawLegend(); 
+      }
+
+      initWheel();
 
       // ---------- AUTOTESTES (Simplificados) ----------
       function runSelfTests(){
         const log = []
         // 1) Memória 20 cartas
         buildMemory(); const tiles = document.querySelectorAll('#memGrid .tile').length; log.push({name:'Memória: 20 cartas', pass: tiles===20, got: tiles})
-        // 2) Roleta 6 fatias
-        drawWheel(); const slicesCount = document.querySelectorAll('#wheel g').length; log.push({name:'Roleta: 6 fatias', pass: slicesCount===6, got: slicesCount})
+        // 2) Roleta 10 fatias
+        drawWheel(); const slicesCount = document.querySelectorAll('#wheel g').length; log.push({name:'Roleta: 10 fatias', pass: slicesCount===10, got: slicesCount})
 
         const allPass = log.every(t=>t.pass)
         const badge = document.getElementById('testBadge')
